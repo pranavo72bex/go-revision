@@ -1,7 +1,10 @@
 package controllers
 
 import (
+	"strconv"
+
 	"example.com/services"
+	"example.com/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -11,11 +14,35 @@ type NotesController struct {
 
 func (n *NotesController) InitNotesControllerRoutes(router *gin.Engine, notesService services.NotesServices) {
 	notes := router.Group("/notes")
-	notes.POST("/", n.GetNotes())
+	notes.POST("/", n.PostNotes())
+	notes.GET("/", n.GetNotes())
 	n.NotesServices = notesService
 }
 
 func (n *NotesController) GetNotes() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+
+		status := ctx.Query("status")
+
+		stausFromStringToBool, err := strconv.ParseBool(status)
+		if err != nil {
+			utils.HandleError(ctx, 400, err)
+			return
+		}
+
+		notes, err := n.NotesServices.GetNotesService(stausFromStringToBool)
+
+		if err != nil {
+			utils.HandleError(ctx, 400, err)
+			return
+		}
+		ctx.JSON(200, gin.H{
+			"notes": notes,
+		})
+	}
+}
+
+func (n *NotesController) PostNotes() gin.HandlerFunc {
 
 	type NoteBody struct {
 		Title  string `json:"title" binding:"required"`
@@ -25,16 +52,12 @@ func (n *NotesController) GetNotes() gin.HandlerFunc {
 		var noteBody NoteBody
 
 		if err := ctx.BindJSON(&noteBody); err != nil {
-			ctx.JSON(400, gin.H{
-				"message": err.Error(),
-			})
+			utils.HandleError(ctx, 400, err)
 			return
 		}
 		note, err := n.NotesServices.PostNoteServices(noteBody.Title, noteBody.Status)
 		if err != nil {
-			ctx.JSON(400, gin.H{
-				"message": err,
-			})
+			utils.HandleError(ctx, 400, err)
 		}
 		ctx.JSON(200, gin.H{
 			"notes": note,
