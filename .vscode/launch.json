@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Attach local process",
+            "type": "go",
+            "request": "attach",
+            "mode": "local",
+            "processId": 1859211,
+            "apiVersion": 2,
+            "showLog": true
+        }
+    ]
+}
