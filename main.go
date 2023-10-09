@@ -19,6 +19,7 @@ func main() {
 	}
 	fmt.Print(db)
 	NotesController := &controllers.NotesController{}
-	NotesController.InitNotesControllerRoutes(r, *notesService)
+	NotesController.InitRoutes(r)
+	NotesController.InitController(*notesService)
 	r.Run(":8000")
 }
