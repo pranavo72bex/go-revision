@@ -16,6 +16,8 @@ func (n *NotesController) InitNotesControllerRoutes(router *gin.Engine, notesSer
 	notes := router.Group("/notes")
 	notes.POST("/", n.PostNotes())
 	notes.GET("/", n.GetNotes())
+	notes.DELETE("/:id", n.DeleteNote())
+	notes.PUT("/", n.UpdateNote())
 	n.NotesServices = notesService
 }
 
@@ -23,6 +25,9 @@ func (n *NotesController) GetNotes() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 
 		status := ctx.Query("status")
+		if status == "" {
+			status = "true"
+		}
 
 		stausFromStringToBool, err := strconv.ParseBool(status)
 		if err != nil {
@@ -56,6 +61,47 @@ func (n *NotesController) PostNotes() gin.HandlerFunc {
 			return
 		}
 		note, err := n.NotesServices.PostNoteServices(noteBody.Title, noteBody.Status)
+		if err != nil {
+			utils.HandleError(ctx, 400, err)
+		}
+		ctx.JSON(200, gin.H{
+			"notes": note,
+		})
+	}
+}
+
+func (n *NotesController) DeleteNote() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		id := ctx.Param("id")
+		noteId, err := strconv.ParseInt(id, 10, 64)
+		if err != nil {
+			utils.HandleError(ctx, 400, err)
+		}
+		err = n.NotesServices.DeleteNoteServices(noteId)
+		if err != nil {
+			utils.HandleError(ctx, 400, err)
+		}
+		ctx.JSON(200, gin.H{
+			"message": "note has been deleted",
+		})
+	}
+}
+
+func (n *NotesController) UpdateNote() gin.HandlerFunc {
+
+	type NoteBody struct {
+		Title  string `json:"title" binding:"required"`
+		Status bool   `json:"status"`
+		Id     int    `json:"id" binding:"required"`
+	}
+	return func(ctx *gin.Context) {
+		var noteBody NoteBody
+
+		if err := ctx.BindJSON(&noteBody); err != nil {
+			utils.HandleError(ctx, 400, err)
+			return
+		}
+		note, err := n.NotesServices.UpdateNoteServices(noteBody.Title, noteBody.Status, noteBody.Id)
 		if err != nil {
 			utils.HandleError(ctx, 400, err)
 		}
