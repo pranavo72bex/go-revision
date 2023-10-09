@@ -16,6 +16,7 @@ func (n *NotesController) InitNotesControllerRoutes(router *gin.Engine, notesSer
 	notes := router.Group("/notes")
 	notes.POST("/", n.PostNotes())
 	notes.GET("/", n.GetNotes())
+	notes.GET("/:id", n.GetSingleNotes())
 	notes.DELETE("/:id", n.DeleteNote())
 	notes.PUT("/", n.UpdateNote())
 	n.NotesServices = notesService
@@ -25,17 +26,36 @@ func (n *NotesController) GetNotes() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 
 		status := ctx.Query("status")
-		if status == "" {
-			status = "true"
+		var actualStatus *bool
+		if status != "" {
+			aS, err := strconv.ParseBool(status)
+			actualStatus = &aS
+			if err != nil {
+				utils.HandleError(ctx, 400, err)
+			}
 		}
 
-		stausFromStringToBool, err := strconv.ParseBool(status)
+		notes, err := n.NotesServices.GetNotesService(actualStatus)
+
 		if err != nil {
 			utils.HandleError(ctx, 400, err)
 			return
 		}
+		ctx.JSON(200, gin.H{
+			"notes": notes,
+		})
+	}
+}
+func (n *NotesController) GetSingleNotes() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
 
-		notes, err := n.NotesServices.GetNotesService(stausFromStringToBool)
+		id := ctx.Param("id")
+		noteId, err := strconv.ParseInt(id, 10, 64)
+		if err != nil {
+			utils.HandleError(ctx, 400, err)
+		}
+
+		notes, err := n.NotesServices.GetSingleNotesService(noteId)
 
 		if err != nil {
 			utils.HandleError(ctx, 400, err)
